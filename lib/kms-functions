@@ -4,10 +4,26 @@ keys() {
   aws kms list-aliases --query 'Aliases[?TargetKeyId!=null][TargetKeyId,AliasName]' --output text
 }
 
+key-access() {
+local key=$(key-arn $1)
+  echo Key Policy Details
+  key-policy-details $key
+  echo
+  echo Key Grants
+  key-grants $key
+  echo
+  echo IAM Role-based Policies
+  key-iam-roles $key Decrypt
+  echo
+  echo IAM User-based Policies
+  key-iam-users $key Decrypt
+}
+
 key-arn() {
-  key_id=$1
+  local key_id=$1
   aws kms describe-key --key-id $key_id --query 'KeyMetadata.Arn' --output text
 }
+
 
 key-policies() {
   key=$1
@@ -35,14 +51,16 @@ iam-roles() {
 
 key-iam-roles() {
   key=$1
+  action_names=kms:${2:-Decrypt}
   for role in $(iam-roles | cut -f2); do
-    aws iam simulate-principal-policy --policy-source-arn $role --action-names kms:Decrypt --resource-arns $(key-arn $key) --query "EvaluationResults[?EvalDecision==\`allowed\`].[EvalActionName, EvalDecision, \`$role\`]" --output text
+    aws iam simulate-principal-policy --policy-source-arn $role --action-names $action_names --resource-arns $(key-arn $key) --query "EvaluationResults[?EvalDecision==\`allowed\`].[EvalActionName, EvalDecision, \`$role\`]" --output text
   done
 }
 
 key-iam-users() {
   key=$1
+  action_names=kms:${2:-Decrypt}
   for role in $(iam-users | cut -f2); do
-    aws iam simulate-principal-policy --policy-source-arn $role --action-names kms:Decrypt --resource-arns $(key-arn $key) --query "EvaluationResults[?EvalDecision==\`allowed\`].[EvalActionName, EvalDecision, \`$role\`]" --output text
+    aws iam simulate-principal-policy --policy-source-arn $role --action-names $action_names --resource-arns $(key-arn $key) --query "EvaluationResults[?EvalDecision==\`allowed\`].[EvalActionName, EvalDecision, \`$role\`]" --output text
   done
 }
