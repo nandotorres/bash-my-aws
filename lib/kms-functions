@@ -1,0 +1,48 @@
+#!/bin/bash
+
+keys() {
+  aws kms list-aliases --query 'Aliases[?TargetKeyId!=null][TargetKeyId,AliasName]' --output text
+}
+
+key-arn() {
+  key_id=$1
+  aws kms describe-key --key-id $key_id --query 'KeyMetadata.Arn' --output text
+}
+
+key-policies() {
+  key=$1
+  aws kms list-key-policies --key-id $key --query "PolicyNames[][\`$key\`, @]" --output text
+}
+
+key-policy-details() {
+  key=$1
+  key_policy=${2:-default}
+  aws kms get-key-policy --key-id $key --policy-name $key_policy --query Policy | jq --raw-output . | jp 'Statement[][Effect, Principal.AWS, join(`" "`,[Action][])]' --output text
+}
+
+key-grants() {
+  key=$1
+  aws kms list-grants --key-id $key
+}
+
+iam-users() {
+  aws iam list-users --query "Roles[][RoleId, Arn]" --output text | grep -v '^None$'
+}
+
+iam-roles() {
+  aws iam list-roles --query "Roles[][RoleId, Arn]" --output text | grep -v '^None$'
+}
+
+key-iam-roles() {
+  key=$1
+  for role in $(iam-roles | cut -f2); do
+    aws iam simulate-principal-policy --policy-source-arn $role --action-names kms:Decrypt --resource-arns $(key-arn $key) --query "EvaluationResults[?EvalDecision==\`allowed\`].[EvalActionName, EvalDecision, \`$role\`]" --output text
+  done
+}
+
+key-iam-users() {
+  key=$1
+  for role in $(iam-users | cut -f2); do
+    aws iam simulate-principal-policy --policy-source-arn $role --action-names kms:Decrypt --resource-arns $(key-arn $key) --query "EvaluationResults[?EvalDecision==\`allowed\`].[EvalActionName, EvalDecision, \`$role\`]" --output text
+  done
+}
