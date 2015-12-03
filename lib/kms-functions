@@ -33,7 +33,7 @@ key-policies() {
 key-policy-details() {
   key=$1
   key_policy=${2:-default}
-  aws kms get-key-policy --key-id $key --policy-name $key_policy --query Policy | jq --raw-output . | jp 'Statement[][Effect, Principal.AWS, join(`" "`,[Action][])]' --output text
+  aws kms get-key-policy --key-id $key --policy-name $key_policy --query Policy | jq --raw-output . | jp 'Statement[][Effect, Principal.AWS, join(`" "`,[Action][])]'
 }
 
 key-grants() {
