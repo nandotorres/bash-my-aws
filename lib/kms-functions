@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# TODO before merge
+# * add Usage
+# * add bash completion
+# * users/roles should default to showing all permissions?
+
 keys() {
   aws kms list-aliases --query 'Aliases[?TargetKeyId!=null][TargetKeyId,AliasName]' --output text
 }
@@ -23,7 +28,6 @@ key-arn() {
   local key_id=$1
   aws kms describe-key --key-id $key_id --query 'KeyMetadata.Arn' --output text
 }
-
 
 key-policies() {
   key=$1
