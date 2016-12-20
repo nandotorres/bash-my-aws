@@ -16,4 +16,8 @@ __bma_usage() {
   echo "USAGE: ${FUNCNAME[1]} $@" > /dev/stderr
 }
 
+__bma_columns() {
+  column -s$'\t' -t
+}
+
 ## vim: ft=sh

@@ -223,19 +223,21 @@ stack-events() {
 
 stack-resources() {
   # type: detail
-  # return the resources managed by a stack
+  # return the resources managed by stack(s)
   local inputs=$(__bma_read_inputs $@)
-  local stack=$(_stack_name_arg $(__bma_read_resources ${inputs}))
-  [[ -z ${stack} ]] && __bma_usage "stack" && return 1
+  [[ -z "${inputs}" ]] && __bma_usage "stack [stack]" && return 1
 
-  local query='StackResources[].[ PhysicalResourceId, ResourceType ]'
+  local query='StackResources[].[ PhysicalResourceId, ResourceType, StackName ]'
 
   local output=$(__bma_read_switches $inputs | grep ^--output | cut -d\  -f2-)
 
-  aws cloudformation describe-stack-resources \
-    --stack-name ${stack}                     \
-    --query "${query}"                        \
-    --output ${output:-"text"}
+  local stack
+  for stack in $(__bma_read_resources ${inputs}); do
+    aws cloudformation describe-stack-resources \
+      --stack-name "$(_stack_name_arg $stack)"  \
+      --query "${query}"                        \
+      --output ${output:-"text"}                | __bma_columns
+  done
 }
 
 stack-asgs() {
