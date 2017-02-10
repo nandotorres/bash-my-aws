@@ -345,10 +345,18 @@ stack-outputs() {
   '
   local output=$(__bma_read_switches $inputs | grep ^--output | cut -d\  -f2-)
 
-  aws cloudformation describe-stacks        \
-    --stack-name ${stack}                   \
-    --query "${query}"                      \
-    --output ${output:-"text"}
+  local data=$(
+    aws cloudformation describe-stacks        \
+      --stack-name ${stack}                   \
+      --query "${query}"                      \
+      --output "${output:-text}"
+  )
+
+  case "${output:-text}" in
+    "text") echo "${data}" | column -s$'\t' -t ;;
+    "json") echo "${data}" | jq . ;;
+    *)      echo "${data}" ;;
+  esac
 }
 
 stack-validate() {
